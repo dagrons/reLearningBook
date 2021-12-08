@@ -1,0 +1,237 @@
+#+SETUPFILE: ~/org-themes/src/solarized_dark/solarized_dark.theme
+#+OPTIONS: ^:nil
+
+* XCTF-基础篇
+
+** Hello, CTF
+
+   查壳, 无壳
+  
+   用IDA打开, F5, 发现hex2ascii
+  
+   编写程序如下:
+
+   #+BEGIN_SRC C++
+	 #include <iostream>
+	 #include <cstdio>
+
+	 using namespace std;
+
+	 int main() {
+	   int a[] = {0x43,0x72,0x61,0x63,0x6b,0x4d,0x65,0x4a,0x75,0x73,0x74,0x46,0x6f,0x72,0x46,0x75,0x6e};	  
+	   for (int i = 0; i < sizeof(a) / sizeof(int); i++) {
+		 printf("%c", a[i]);
+	   }
+	 }
+   #+END_SRC
+
+   #+RESULTS:
+   : CrackMeJustForFun
+
+
+** insanity
+
+
+   拖到execinfo, 发现是elf, 在linux执行, 直接出flag, 佛了
+
+
+** python-trade
+
+   下载是个pyc文件
+
+   安装uncompyle
+
+   #+BEGIN_SRC shell
+   pip3 install uncompyle
+   #+END_SRC
+
+   反编译pyc
+   #+BEGIN_SRC shell
+   uncompyle6 f417c0d03b0344eb9969ed0e1f772091.pyc > 3.py
+   #+END_SRC
+
+   编写解码函数, 完毕
+
+   #+BEGIN_SRC python
+	 import base64
+
+	 def decode(message):
+		 message = base64.b64decode(message)	
+		 s = ''
+		 for i in message:
+			 x = i - 16
+			 x = x ^ 32
+			 s += chr(x)
+		 return s
+
+	 correct = 'XlNkVmtUI1MgXWBZXCFeKY+AaXNt'
+
+	 res = decode(correct)
+	 print (res)
+
+   #+END_SRC
+    
+
+** re1
+
+   直接F5, 给出明文, 完毕
+
+
+** game
+  
+   每个最多被点一次, 但要保证每个被点的次数是奇数次, 只能每个点一下
+
+
+** open-source
+  
+   得到一个c文件
+
+   根据c文件求对应参数, 为c0ffee
+
+   #+BEGIN_SRC C++
+	 #include "stdio.h"
+	 #include "string.h"
+
+	 int main() {
+	   int first = 0xcafe;
+	   printf("%d ", first);
+
+	   int t = 0;
+	   for (int i = 0; i < 100; i++) {
+		 t = 17 * i + 8;
+		 if (t % 5 != 3) {
+		   break;
+		 }
+	   }
+	   printf ("%d ", t);
+
+	   unsigned int hash = first * 31337 + (t % 17) * 11 + strlen("h3cky0u") - 1615810207;
+
+	   printf ("%x", hash);
+	 }
+   #+END_SRC
+
+   #+RESULTS:
+   : 51966 25 c0ffee
+
+
+** simple-unpack
+
+   拉到execinfo, 发现UPX加壳, 且是个elf文件
+
+   在Linux下脱壳
+
+   #+BEGIN_SRC shell
+	 upx -d <target>
+   #+END_SRC
+
+   由于Linux下没有IDA pro, 拉到Windows上的IDA pro进行elf分析, 发现flag, 完毕
+
+
+** logmein
+  
+   拉到execinfo, 没有加壳, 是个elf文件
+
+   用IDA pro分析, 查看printf的CrossRefTo, 找到主逻辑在main里
+
+   直接F5
+  
+   #+BEGIN_SRC C++ :results output :exports both
+	 #include "stdio.h"
+	 #include "string.h"
+
+	 using namespace std;
+
+	 int main() {
+	   char v8[] = ":\"AL_RT^L*.?+6/46";
+	   char v7[] = "harambe";
+	   for (int i = 0; i < strlen(v8); i++) {
+		 char c = v7[i%7] ^ v8[i];
+		 printf("%c", c);
+	   }
+	 }
+   #+END_SRC
+
+   #+RESULTS:
+   : RC3-2016-XORISGUD
+
+   发现结果不对, +不知道原因+（原来是因为用int64存储chars，是little endian）
+
+   用IDA pro的Remote Linux Debugger进行动态调试, 将IDA linux_server在/home/dell/Downloads/下执行
+
+   然后设置IDA pro的Debug > Process Option, 就可以远程调试了
+
+   我们将关键判断jz改成无条件判断jmp(Edit->patch->assembly), 然后记录每次rdi的值, 即可得到flag为"RC3-2016-XORISGUD", 我佛了, 我好狗啊
+
+  
+  
+  
+** no-string-attached
+
+   F5, 分析函数层次, 
+
+   找到关键函数decrypt, 分析之
+
+   好像逻辑就是两个字符串相减,
+
+   感觉可以, 直接动态调试, 拿到dest的值, 搞定
+
+
+** getit
+
+   动态调试, 完毕
+
+
+** csaw2013reversing2
+
+   我, 只能说patch大法好, 看到加密部分, 不想分析, 直接patch, 然后ollydbg调试, 在栈中找到flag, 完毕
+
+  
+** maze
+
+   拉到IDA, F5, 分析程序逻辑
+
+   值得注意的是, 该题用int64存储两个int32, 分大小端表示col和row
+
+   查看数组变量, 取出迷宫地图
+
+   #+BEGIN_EXPORT html
+   <pre>
+   rd******
+   ,*rrd*  *
+   ,***d* **
+   ,**dl* **
+   ,* d*#ll*
+   ,**d***u*
+   ,**rrrru*
+   ,********
+   </pre>
+   #+END_EXPORT
+   所以答案是: nctf{o0oo00O000oooo..OO}
+
+   至此, xctf-基础篇的12道题就搞定了, 从花了一天半时间, 总的来说, 比我想象的还是简单一些, 可能随着时间过去, 积累多了, 一些东西就慢慢水到渠成了吧.
+
+
+* 栈的结构
+
+  | local var x        | <-esp |
+  | ...                |       |
+  | local var 1        |       |
+  | last frame pointer | <-ebp |
+  | ret addr           |       |
+  | arg 1              |       |
+  | ...                |       |
+  | arg n              |       |
+
+
+  个人习惯将参数+局部变量看做一个整体，
+
+  通常创建栈帧的指令如下：
+  
+  #+BEGIN_SRC asm
+		push ebp		; 压入上一个栈帧的位置
+		mov esp ebp		; 此时局部变量无空间
+		sub esb	xxh		; 为局部变量分配xx字节空间
+  #+END_SRC
+
+  
